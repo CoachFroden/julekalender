@@ -1,0 +1,66 @@
+<!doctype html><html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trolleliv | Eventyrtreet</title><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07101c;color:#fff;font-family:Georgia,serif}#app{height:100dvh;touch-action:none}canvas{display:block}#head{position:absolute;z-index:3;top:18px;left:18px;max-width:330px;padding:17px 20px;background:linear-gradient(135deg,#0c1b2edb,#07111dba);border:1px solid #d9ae6866;border-radius:15px;backdrop-filter:blur(12px);box-shadow:0 12px 45px #0008}h1{font-size:25px;color:#f5d6a0;margin:0 0 7px}p{font:13px/1.5 system-ui;color:#dce5ef;margin:0 0 12px}button{background:#76502d;color:#ffebc7;border:1px solid #d6ac71;padding:9px 12px;border-radius:8px;cursor:pointer;font:13px system-ui}#tip{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:9px 16px;border-radius:25px;background:#081525b8;color:#eee;font:12px system-ui;white-space:nowrap}@media(max-width:600px){#head{top:9px;left:9px;right:9px;max-width:none;padding:10px 13px}h1{font-size:19px}#tip{font-size:10px}}</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script></head><body><div id="head"><h1>✦ Eventyrtreet</h1><p>En ny, mer detaljert 3D-test: tusenvis av barnåler, grenverk, glasskuler, lyslenker, snø og varm glød.</p><button id="lights">Slukk lysene</button> <button id="home">Tilbakestill kamera</button></div><div id="app"></div><div id="tip">Dra for å rotere · Rull for å zoome · Klikk på en kule</div><script type="module">
+import * as T from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+const root=document.getElementById('app'),scene=new T.Scene();scene.background=new T.Color('#07101e');scene.fog=new T.FogExp2('#091426',.019);
+const cam=new T.PerspectiveCamera(41,innerWidth/innerHeight,.1,110);cam.position.set(9.7,6.9,15.5);
+const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;root.appendChild(renderer.domElement);
+const controls=new OrbitControls(cam,renderer.domElement);controls.target.set(0,4.2,0);controls.enableDamping=true;controls.minDistance=7;controls.maxDistance=25;controls.maxPolarAngle=1.48;controls.update();
+scene.add(new T.HemisphereLight(0xb7d7ff,0x22321c,1.8));const moon=new T.DirectionalLight(0xbcd4ff,2.5);moon.position.set(-7,13,9);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);moon.shadow.camera.left=-15;moon.shadow.camera.right=15;moon.shadow.camera.top=15;moon.shadow.camera.bottom=-15;scene.add(moon);
+const floor=new T.Mesh(new T.CircleGeometry(27,96),new T.MeshStandardMaterial({color:0xb5c9d9,roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+let seed=845927;function rnd(){seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296}
+const tree=new T.Group();scene.add(tree);const bark=new T.MeshStandardMaterial({color:0x41281d,roughness:1});const trunk=new T.Mesh(new T.CylinderGeometry(.10,.37,8.4,12),bark);trunk.position.y=4.2;tree.add(trunk);
+const branchMats=[0x173d2b,0x204e32,0x2b5d39,0x123c2d,0x315c3d].map(c=>new T.MeshStandardMaterial({color:c,side:T.DoubleSide,roughness:1}));
+const twigMat=new T.MeshStandardMaterial({color:0x3b3325,roughness:1});
+function rod(a,b,r1,r2,material,parent){const v=new T.Vector3().subVectors(b,a),m=new T.Mesh(new T.CylinderGeometry(r2,r1,v.length(),5),material);m.position.copy(a).addScaledVector(v,.5);m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),v.normalize());parent.add(m)}
+// Actual volumetric branch structure, built as branching twigs with individually oriented needle clusters.
+const needleGeo=new T.ConeGeometry(.018,.22,3);needleGeo.translate(0,.11,0);
+const maxNeedles=39000,needles=branchMats.map(m=>new T.InstancedMesh(needleGeo,m,maxNeedles/5));needles.forEach(n=>{n.instanceMatrix.setUsage(T.StaticDrawUsage);tree.add(n)});
+const counts=[0,0,0,0,0],dummy=new T.Object3D(),up=new T.Vector3(0,1,0);
+function needle(pos,dir,size,col){if(counts[col]>=maxNeedles/5)return;dummy.position.copy(pos);dummy.quaternion.setFromUnitVectors(up,dir.clone().normalize());dummy.scale.setScalar(size);dummy.updateMatrix();needles[col].setMatrixAt(counts[col]++,dummy.matrix)}
+const V=(x,y,z)=>new T.Vector3(x,y,z);
+const branches=[];
+for(let ring=0;ring<31;ring++){
+ const y=.9+ring*.252,rad=3.45*Math.pow(Math.max(.03,1-y/9.15),.88),num=ring>24?8:12+Math.floor(rnd()*4);
+ for(let k=0;k<num;k++){
+ const a=k*2*Math.PI/num+ring*2.4,ux=Math.cos(a),uz=Math.sin(a),length=rad*(.78+rnd()*.27);
+ const start=V(ux*.16,y,uz*.16),end=V(ux*length,y-.28-rnd()*.28,uz*length),direction=end.clone().sub(start);
+ rod(start,end,.035,.009,twigMat,tree);
+ const twigs=8+Math.floor(length*5);
+ for(let j=1;j<=twigs;j++){
+ const t=j/twigs,p=start.clone().lerp(end,t),spread=.15+.27*(1-t),side=(j%2?1:-1),tangent=V(-uz,0,ux),q=p.clone().addScaledVector(tangent,side*spread*(.7+rnd()*.7));q.y+=.04+rnd()*.13;
+ rod(p,q,.012,.003,twigMat,tree);
+ for(let h=0;h<13;h++){
+ const s=h/13,base=p.clone().lerp(q,s),rot=h*2.4+rnd()*2,needleDir=V(Math.cos(rot)*.8+ux*.45,.18+rnd()*.55,Math.sin(rot)*.8+uz*.45);
+ needle(base,needleDir,.6+rnd()*.8,Math.floor(rnd()*5));
+ }
+ }
+ branches.push({a,y,rad:length});
+ }
+}
+needles.forEach((n,i)=>{n.count=counts[i];n.instanceMatrix.needsUpdate=true});
+// Snow caught on branch tips: irregular little caps.
+const snowMat=new T.MeshStandardMaterial({color:0xdfe9f1,roughness:1});
+for(let i=0;i<390;i++){const y=.7+rnd()*7.6,r=3.5*Math.pow(Math.max(.03,1-y/9.15),.88)*(.68+rnd()*.32),a=rnd()*Math.PI*2;const clump=new T.Mesh(new T.IcosahedronGeometry(.07+rnd()*.075,0),snowMat);clump.position.set(Math.cos(a)*r,y+.13,Math.sin(a)*r);clump.scale.set(1.8,.35,1);tree.add(clump)}
+const baubleGeo=new T.SphereGeometry(1,20,14),ornaments=[],metal=[0xc82d39,0xc99b4c,0xe6d8b3,0x9b2638,0x5d7f96];
+for(let i=0;i<130;i++){const y=1.1+rnd()*7.25,r=3.47*Math.pow(Math.max(.03,1-y/9.15),.88)*(.90+rnd()*.09),a=rnd()*Math.PI*2,s=.09+rnd()*.095;const material=new T.MeshPhysicalMaterial({color:metal[Math.floor(rnd()*metal.length)],metalness:.75,roughness:.13,clearcoat:1,clearcoatRoughness:.07});const b=new T.Mesh(baubleGeo,material);b.scale.setScalar(s);b.position.set(Math.cos(a)*r,y,Math.sin(a)*r);tree.add(b);ornaments.push(b);const cap=new T.Mesh(new T.CylinderGeometry(s*.3,s*.32,s*.22,8),new T.MeshStandardMaterial({color:0xc9a25e,metalness:.9,roughness:.25}));cap.position.set(b.position.x,y+s,b.position.z);tree.add(cap)}
+// Actual hanging string lights with a continuous spiralling cable.
+const wirePoints=[],bulbs=[],bulbGeo=new T.SphereGeometry(.062,10,8),bulbColors=[0xffd189,0xfff2bc,0xffa963,0xa8d8ff,0xffdba0];
+for(let i=0;i<850;i++){const t=i/849,y=.75+t*7.85,r=3.53*Math.pow(Math.max(.02,1-y/9.15),.88)*1.055,a=t*Math.PI*2*15;wirePoints.push(V(Math.cos(a)*r,y+.045*Math.sin(a*3),Math.sin(a)*r))}
+const cable=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(wirePoints),1800,.012,3,false),new T.MeshStandardMaterial({color:0x302a1b,roughness:1}));tree.add(cable);
+for(let i=0;i<wirePoints.length;i+=4){const pos=wirePoints[i],col=bulbColors[Math.floor(rnd()*bulbColors.length)],m=new T.MeshBasicMaterial({color:col});const b=new T.Mesh(bulbGeo,m);b.position.copy(pos);tree.add(b);bulbs.push({b,m,phase:rnd()*6.28,speed:.4+rnd()*1.2})}
+const glowLights=[];for(let i=0;i<11;i++){const p=wirePoints[Math.floor(i*wirePoints.length/11)],l=new T.PointLight(0xffc47e,2.2,3.8);l.position.copy(p);scene.add(l);glowLights.push(l)}
+const shape=new T.Shape();for(let i=0;i<10;i++){let a=i*Math.PI/5-Math.PI/2,r=i%2?.28:.64;i?shape.lineTo(Math.cos(a)*r,Math.sin(a)*r):shape.moveTo(Math.cos(a)*r,Math.sin(a)*r)}shape.closePath();const star=new T.Mesh(new T.ExtrudeGeometry(shape,{depth:.12,bevelEnabled:true,bevelThickness:.07,bevelSize:.05,bevelSegments:2}),new T.MeshStandardMaterial({color:0xffd17a,metalness:.68,roughness:.18,emissive:0xffa22b,emissiveIntensity:1.8}));star.geometry.center();star.position.y=9.18;tree.add(star);const topLight=new T.PointLight(0xffc26e,8,8);topLight.position.y=9.2;scene.add(topLight);
+// Gift boxes at base.
+const wrapping=[0x8f2736,0x2a6559,0xb58a44,0x284e76];
+for(let i=0;i<8;i++){let a=i*2.4,r=1.05+rnd()*1.3,s=.45+rnd()*.35,x=Math.cos(a)*r,z=Math.sin(a)*r;const gift=new T.Group();gift.position.set(x,s/2,z);gift.rotation.y=rnd()*3;tree.add(gift);const m=new T.MeshStandardMaterial({color:wrapping[i%4],roughness:.55});const b=new T.Mesh(new T.BoxGeometry(s,s,s),m);gift.add(b);const ribbon=new T.MeshStandardMaterial({color:0xe7c47d,metalness:.35,roughness:.35});const r1=new T.Mesh(new T.BoxGeometry(s*.15,s+.012,s+.02),ribbon),r2=new T.Mesh(new T.BoxGeometry(s+.02,s+.012,s*.15),ribbon);gift.add(r1,r2)}
+const snowCount=1000,snowPos=new Float32Array(snowCount*3),snowSpeed=[];for(let i=0;i<snowCount;i++){snowPos[i*3]=(rnd()-.5)*42;snowPos[i*3+1]=rnd()*17;snowPos[i*3+2]=(rnd()-.5)*42;snowSpeed.push(.5+rnd()*1.2)}const snowGeo=new T.BufferGeometry();snowGeo.setAttribute('position',new T.BufferAttribute(snowPos,3));scene.add(new T.Points(snowGeo,new T.PointsMaterial({color:0xe5efff,size:.08,transparent:true,opacity:.85,depthWrite:false})));
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,cam));const bloom=new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.58,.55,.78);composer.addPass(bloom);
+let on=true;document.getElementById('lights').onclick=()=>{on=!on;document.getElementById('lights').textContent=on?'Slukk lysene':'Tenn lysene';bulbs.forEach(({m})=>m.color.set(on?0xffd49b:0x343b40));glowLights.forEach(l=>l.intensity=on?2.2:0);topLight.intensity=on?8:0;star.material.emissiveIntensity=on?1.8:.1;bloom.strength=on?.58:.1};
+document.getElementById('home').onclick=()=>{cam.position.set(9.7,6.9,15.5);controls.target.set(0,4.2,0);controls.update()};
+const ray=new T.Raycaster(),pointer=new T.Vector2();let down=null;renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,cam);const hit=ray.intersectObjects(ornaments)[0];if(hit){hit.object.material.emissive.set(0xffaa44);hit.object.material.emissiveIntensity=1.2;setTimeout(()=>{hit.object.material.emissiveIntensity=0},600)}});
+const clock=new T.Clock();function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;for(const {b,m,phase,speed} of bulbs){if(on){let pulse=.65+.35*Math.sin(t*speed+phase);b.scale.setScalar(.78+.3*pulse);m.color.setRGB(1,.59+.28*pulse,.26+.4*pulse)}}star.rotation.y=t*.15;for(let i=0;i<snowCount;i++){snowPos[i*3+1]-=snowSpeed[i]*dt;snowPos[i*3]+=.09*Math.sin(t*.4+i)*dt;if(snowPos[i*3+1]<0)snowPos[i*3+1]=17}snowGeo.attributes.position.needsUpdate=true;controls.update();composer.render()}animate();
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
+</script></body></html>

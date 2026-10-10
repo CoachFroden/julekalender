@@ -23,7 +23,7 @@ function positionPanel(x,y,scale){panel.style.left=x+'px';panel.style.top=y+'px'
 function openDoor(d,b){
  if(active||!allowed(d.id))return;
  const token=++animationToken;active={d,b,closing:false};b.classList.add('open');
- info.textContent='Kapittel '+(d.id==='intro'?1:d.id==='outro'?26:Number(d.id)+1);
+ info.textContent=d.id==='intro'?'Innledning':d.id==='outro'?'Avslutning':'Kapittel '+d.id;
  clearTimeout(timer);panel.className='panel hidden';panel.style.transition='none';
  const origin=doorOrigin(b);positionPanel(origin.x,origin.y,.12);
  setTimeout(()=>{if(token!==animationToken)return;panel.className='panel hidden';panel.style.transition='none';positionPanel(origin.x,origin.y,.12);void panel.offsetWidth;panel.style.transition='left 4.8s cubic-bezier(.35,.1,.25,1),top 4.8s cubic-bezier(.35,.1,.25,1),transform 4.8s cubic-bezier(.35,.1,.25,1),opacity 3.3s ease';panel.className='panel visible';positionPanel(scene.clientWidth*.5,scene.clientHeight*.49,1)},1600);
@@ -32,11 +32,21 @@ function openDoor(d,b){
 function finish(){
  if(!active||active.closing)return;
  active.closing=true;const {d,b}=active,token=++animationToken;
- clearTimeout(timer);completed.add(d.id);localStorage.setItem('trolleliv-completed',JSON.stringify([...completed]));
- const origin=doorOrigin(b);panel.className='panel visible';positionPanel(origin.x,origin.y,.12);
- setTimeout(()=>{if(token!==animationToken)return;panel.className='panel returning'},1700);
- setTimeout(()=>{if(token!==animationToken)return;b.classList.remove('open')},2150);
- setTimeout(()=>{if(token!==animationToken)return;panel.className='panel hidden';active=null;draw()},5300);
+ clearTimeout(timer);
+ completed.add(d.id);localStorage.setItem('trolleliv-completed',JSON.stringify([...completed]));
+ // Capture the actual current screen position, then animate from there without jumping.
+ const rect=panel.getBoundingClientRect(),sr=scene.getBoundingClientRect();
+ const centerX=rect.left+rect.width/2-sr.left,centerY=rect.top+rect.height/2-sr.top;
+ const currentScale=rect.width/panel.offsetWidth;
+ panel.style.transition='none';panel.className='panel visible';
+ positionPanel(centerX,centerY,currentScale);
+ void panel.offsetWidth;
+ const origin=doorOrigin(b);
+ panel.style.transition='left 4.8s cubic-bezier(.35,.1,.25,1),top 4.8s cubic-bezier(.35,.1,.25,1),transform 4.8s cubic-bezier(.35,.1,.25,1),opacity 3.6s ease 1.1s';
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token!==animationToken)return;positionPanel(origin.x,origin.y,.12);panel.style.opacity='0';panel.style.pointerEvents='none'}));
+ // Door remains open until the entire return movement is complete.
+ setTimeout(()=>{if(token!==animationToken)return;b.classList.remove('open')},5200);
+ setTimeout(()=>{if(token!==animationToken)return;panel.className='panel hidden';panel.style.opacity='';panel.style.transition='';active=null;draw()},8300);
 }
 document.getElementById('finish').onclick=finish;document.getElementById('reset').onclick=()=>{if(active){animationToken++;active=null;panel.className='panel hidden'}completed.clear();localStorage.removeItem('trolleliv-completed');draw()};test.onchange=draw;draw();
 function snowfall(){if(document.hidden)return;const snow=document.getElementById('snow');for(let i=0;i<10;i++){let s=document.createElement('span');s.className='flake';s.textContent='❄';s.style.left=Math.random()*100+'%';s.style.fontSize=(5+Math.random()*8)+'px';s.style.animationDuration=(9+Math.random()*9)+'s';s.style.animationDelay=Math.random()*4+'s';snow.append(s);setTimeout(()=>s.remove(),23000)}}snowfall();setInterval(()=>{if(Math.random()>.4)snowfall()},15000);

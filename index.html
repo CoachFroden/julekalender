@@ -9,9 +9,9 @@
 /* Rolig, kontinuerlig vinterliv over originalmotivet */
 .ambient-life{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
 .chimney-smoke{position:absolute;left:83.2%;top:4.8%;width:1px;height:1px}
-.smoke-wisp{position:absolute;left:0;bottom:0;width:clamp(10px,1.4vw,23px);height:clamp(22px,3vw,48px);border-radius:48% 52% 58% 42%;background:radial-gradient(ellipse,rgba(241,244,248,.58) 0%,rgba(232,237,245,.34) 38%,rgba(229,237,247,.10) 66%,transparent 83%);filter:blur(5px);opacity:0;animation:smoke-rise 8s linear infinite}
+.smoke-wisp{position:absolute;left:0;bottom:0;width:clamp(10px,1.4vw,23px);height:clamp(22px,3vw,48px);border-radius:48% 52% 58% 42%;background:radial-gradient(ellipse,rgba(241,244,248,.72) 0%,rgba(232,237,245,.46) 38%,rgba(229,237,247,.16) 66%,transparent 83%);filter:blur(5px);opacity:0;animation:smoke-rise 8s linear infinite}
 .smoke-wisp:nth-child(2){animation-delay:-.8s}.smoke-wisp:nth-child(3){animation-delay:-1.6s}.smoke-wisp:nth-child(4){animation-delay:-2.4s}.smoke-wisp:nth-child(5){animation-delay:-3.2s}.smoke-wisp:nth-child(6){animation-delay:-4s}.smoke-wisp:nth-child(7){animation-delay:-4.8s}.smoke-wisp:nth-child(8){animation-delay:-5.6s}.smoke-wisp:nth-child(9){animation-delay:-6.4s}.smoke-wisp:nth-child(10){animation-delay:-7.2s}
-.smoke-wisp:nth-child(3n){--drift:-1.1vw;--strength:.46}.smoke-wisp:nth-child(3n + 1){--drift:.45vw;--strength:.62}.smoke-wisp:nth-child(3n + 2){--drift:-.5vw;--strength:.54}
+.smoke-wisp:nth-child(3n){--drift:-1.1vw;--strength:.62}.smoke-wisp:nth-child(3n + 1){--drift:.45vw;--strength:.78}.smoke-wisp:nth-child(3n + 2){--drift:-.5vw;--strength:.70}
 @keyframes smoke-rise{0%{opacity:0;transform:translate(0,0) scale(.45)}9%{opacity:var(--strength,.55)}45%{opacity:var(--strength,.55);transform:translate(calc(var(--drift,0vw) * .35),-3.5vw) scale(1.2)}80%{opacity:.24}100%{opacity:0;transform:translate(var(--drift,0vw),-9vw) scale(2.6)}}
 .ambient-bird{position:absolute;left:20%;top:23%;width:clamp(17px,1.5vw,26px);height:auto;overflow:visible;opacity:0;filter:drop-shadow(0 0 1px rgba(255,255,255,.3));animation:bird-pass 16s linear infinite}
 .ambient-bird .bird-wings{transform-box:fill-box;transform-origin:center;animation:bird-flap .48s ease-in-out infinite alternate}
